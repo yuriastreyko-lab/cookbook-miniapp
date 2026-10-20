@@ -1,38 +1,53 @@
 const $=s=>document.querySelector(s),ls=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}},sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch{toast('Не хватило места: уберите фото у старых рецептов')}};
-const CATS=['Завтраки','Супы','Горячее','Салаты','Выпечка','Десерты'],HUE=['#ffd166','#ff8f6b','#f4a3b8','#8fd16a','#f0b46c','#c4a3f0'];
-let custom=ls('cb2-custom',[]),fav=new Set(ls('cb2-fav',[])),cat='Все',editId=null;
-const all=()=>[...custom,...BASE],esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const MEALS=[['Завтрак','#2f2923','Десерты'],['Перекус','#2e2420','Сладкая выпечка'],['Обед','#233628','Супы'],['Ужин','#272a3b','Блюда с мясом']];
+const CATS=['Холодные закуски','Горячие закуски','Овощные салаты','Мясные салаты','Салаты с птицей','Рыбные салаты','Супы','Овощные блюда','Блюда с мясом','Блюда с птицей','Блюда с рыбой','Гарниры','Сладкая выпечка','Десерты','Напитки'],HUE=['#ffd166','#ff8f6b','#f4a3b8','#8fd16a','#f0b46c','#c4a3f0'],TT={home:'Главная',fav:'Любимые',search:'Поиск',cart:'Покупки',me:'Профиль'};
+let custom=ls('cb2-custom',[]),fav=new Set(ls('cb2-fav',[])),done=new Set(ls('cb2-done',[])),cart=ls('cb2-cart',[]),chk=new Set(ls('cb2-chk',[])),tab='home',view=null,ftab='fav',q='',editId=null;
+const all=()=>[...custom,...BASE],find=id=>all().find(r=>r.id===id),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const toast=t=>{const e=$('#toast');e.textContent=t;e.classList.add('show');setTimeout(()=>e.classList.remove('show'),1900)};
-function plate(r){let h=0;for(const ch of r.title)h=(h*31+ch.charCodeAt(0))%9973;const c=HUE[Math.max(0,CATS.indexOf(r.category))];let d='';
+const save=()=>{sv('cb2-custom',custom);sv('cb2-fav',[...fav]);sv('cb2-done',[...done]);sv('cb2-cart',cart);sv('cb2-chk',[...chk])};
+function plate(r,bare){let h=0;for(const ch of r.title)h=(h*31+ch.charCodeAt(0))%9973;const c=HUE[Math.max(0,CATS.indexOf(r.category))%6];let d='';
 for(let i=0;i<8;i++){h=(h*1103+12345)%9973;const a=h%360*Math.PI/180,k=6+h%18;d+=`<circle cx="${50+Math.cos(a)*k}" cy="${50+Math.sin(a)*k}" r="${4+h%7}" fill="${c}" opacity=".${6+h%4}"/>`}
-return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice"><defs><radialGradient id="g"><stop offset="0" stop-color="#2f5a47"/><stop offset="1" stop-color="#10261e"/></radialGradient></defs><rect width="100" height="100" fill="url(#g)"/><circle cx="50" cy="50" r="37" fill="#e8efe0"/><circle cx="50" cy="50" r="29" fill="#f7faf2" stroke="#cfdcc4"/>${d}<path d="M40 44c6-10 16-12 22-8-4 8-14 12-22 8z" fill="#5f9a4e"/></svg>`}
+return `<svg viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">${bare?'':'<rect width="100" height="100" fill="#26382a"/>'}<circle cx="50" cy="50" r="37" fill="#e8efe0"/><circle cx="50" cy="50" r="29" fill="#f7faf2" stroke="#cfdcc4"/>${d}<path d="M40 44c6-10 16-12 22-8-4 8-14 12-22 8z" fill="#5f9a4e"/></svg>`}
 const ph=(r,x='')=>`<div class="ph">${plate(r)}${r.photo?`<img src="${esc(r.photo)}" alt="${esc(r.title)}" loading="lazy" onerror="this.remove()">`:''}${x}</div>`;
-function tiles(){$('#cats').innerHTML=['Все',...CATS].map(c=>`<button data-c="${c}" class="${cat===c?'on':''}"><b>${c==='Все'?all().length:all().filter(r=>r.category===c).length}</b>${c}</button>`).join('');
-document.querySelectorAll('#tabs [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===(cat==='Все'||CATS.includes(cat)?'Все':cat)))}
-function hero(){const l=all(),r=l[new Date().getDate()%l.length];$('#hero').innerHTML=`<div><small>Рецепт дня</small><h3>${esc(r.title)}</h3><p>${esc(r.description||'')}</p><button class="pill" data-open="${r.id}">Смотреть</button></div>${ph(r)}`}
-function render(){const q=$('#search').value.toLowerCase().trim();
-const list=all().filter(r=>(cat==='Все'||(cat==='♥'?fav.has(r.id):cat==='Мои'?r.id[0]==='c':r.category===cat))&&[r.title,r.category,r.description,...r.ingredients].join(' ').toLowerCase().includes(q));
-$('#secTitle').textContent={'Все':'Все рецепты','♥':'Избранное','Мои':'Мои рецепты'}[cat]||cat;$('#count').textContent='Найдено: '+list.length;
-$('#recipes').innerHTML=list.length?list.map(r=>`<article class="glass card" data-open="${r.id}">${ph(r,`<button class="fav" data-fav="${r.id}" aria-label="В избранное">${fav.has(r.id)?'♥':'♡'}</button>`)}<h3>${esc(r.title)}</h3><div class="meta">${esc(r.category)} · ${r.time} мин</div></article>`).join(''):'<p class="empty">Здесь пока пусто. Измените запрос или добавьте рецепт кнопкой «Добавить».</p>';tiles()}
-function openRecipe(id){const r=all().find(x=>x.id===id);if(!r)return;const mine=id[0]==='c',d=$('#detail');
-$('#detailContent').innerHTML=`<div class="dtop">${ph(r)}<button class="round bk" id="dBack" aria-label="Назад">‹</button><button class="round hf" id="dHeart" aria-label="В избранное">${fav.has(id)?'♥':'♡'}</button></div><div class="glass panel"><h2>${esc(r.title)}</h2><div class="sub">${esc(r.category)}</div><p>${esc(r.description||'')}</p><div class="facts"><div><b>${r.time}</b><span>минут</span></div><div><b>${r.ingredients.length}</b><span>ингредиентов</span></div><div><b>${r.steps.length}</b><span>шагов</span></div></div><h3>Ингредиенты</h3><ul class="ing">${r.ingredients.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><h3>Приготовление</h3><ol class="steps">${r.steps.map(x=>`<li><span>${esc(x)}</span></li>`).join('')}</ol>${mine?'<div class="acts"><button class="ghost" id="dEdit">Изменить</button><button class="danger" id="dDel">Удалить</button></div>':'<div class="acts"></div>'}</div>`;
-$('#dBack').onclick=()=>d.close();$('#dHeart').onclick=()=>{toggleFav(id);$('#dHeart').textContent=fav.has(id)?'♥':'♡'};
-if(mine){$('#dEdit').onclick=()=>{d.close();openForm(r)};$('#dDel').onclick=()=>{if(confirm('Удалить рецепт?')){custom=custom.filter(x=>x.id!==id);sv('cb2-custom',custom);d.close();hero();render();toast('Рецепт удалён')}}}
-d.querySelectorAll('.ing li').forEach(li=>li.onclick=()=>li.classList.toggle('done'));d.showModal();d.scrollTop=0}
-function toggleFav(id){fav.has(id)?fav.delete(id):fav.add(id);sv('cb2-fav',[...fav]);render()}
+const heart=r=>`<button class="fav" data-fav="${r.id}" aria-label="В любимые">${fav.has(r.id)?'♥':'♡'}</button>`;
+const vcard=r=>`<article class="vc" data-open="${r.id}">${ph(r,heart(r))}<div class="vt"><h3>${esc(r.title)}</h3><span>◷ ${r.time} мин</span></div></article>`;
+const grid=l=>l.length?`<div class="gr">${l.map(vcard).join('')}</div>`:empty('Ничего не найдено','Попробуйте другой запрос');
+const empty=(t,s,h)=>`<div class="em"><h2>${t}</h2><p>${s}</p><svg viewBox="0 0 100 80" width="190"><ellipse cx="50" cy="42" rx="46" ry="36" fill="#cfe0fb"/><rect x="30" y="6" width="40" height="68" rx="5" fill="#f1f1f1"/><rect x="34" y="12" width="14" height="14" fill="#7db3f0"/><rect x="52" y="12" width="14" height="3" fill="#ccc"/><circle cx="42" cy="44" r="9" fill="none" stroke="#f0c43c" stroke-width="3"/></svg>${h?`<p class="hint">${h}</p>`:''}</div>`;
+const meals=()=>`<div class="ml">${MEALS.map(([n,c,k])=>`<button class="mt" data-meal="${n}" style="background:${c}">${plate({title:n,category:k},1)}${n}</button>`).join('')}</div>`;
+const ctile=c=>`<button class="ct" data-cat="${c}">${ph(all().find(x=>x.category===c)||{title:c,category:c})}<span>${c}</span></button>`;
+const SCR={
+home(){const l=all(),d=l[new Date().getDate()%l.length];return `<h2>Что приготовить?</h2>${meals()}<h2>Рецепт дня</h2><article class="day" data-open="${d.id}">${ph(d,heart(d))}<div><h3>${esc(d.title)}</h3><p>${esc(d.ingredients.slice(0,3).join(', '))}…</p><span>◷ ${d.time} мин</span></div></article><div class="sec"><h2>Новые</h2><a data-list="1">Больше рецептов</a></div><div class="hs">${l.slice(0,8).map(vcard).join('')}</div>`},
+fav(){const l=all().filter(r=>(ftab==='fav'?fav:done).has(r.id));return `<div class="tb"><button data-ft="fav" class="${ftab==='fav'?'on':''}">Любимые</button><button data-ft="done" class="${ftab==='done'?'on':''}">Приготовлено</button></div>`+(l.length?grid(l):empty('В этом разделе пока пусто','С помощью кнопки поиска на нижней панели найдите нужные рецепты',ftab==='fav'?'Чтобы добавить рецепт нажмите ♡':'Откройте рецепт и нажмите «Приготовлено»'))},
+search(){return `<div class="sb"><span>⌕</span><input id="q" type="search" value="${esc(q)}" placeholder="Искать по ингредиенту/названию"></div><div id="sbody"></div>`},
+cart(){const l=cart.map(find).filter(Boolean);return l.length?l.map(r=>`<div class="cl"><h3 data-open="${r.id}">${esc(r.title)}</h3>${r.ingredients.map((x,i)=>`<label class="ck"><input type="checkbox" data-chk="${r.id}|${i}" ${chk.has(r.id+'|'+i)?'checked':''}><span>${esc(x)}</span></label>`).join('')}</div>`).join('')+'<button class="ghost" data-clear="1">Очистить список</button>':empty('В этом разделе пока пусто','С помощью кнопки поиска на нижней панели найдите нужные рецепты','Чтобы добавить рецепт нажмите ☑ в рецепте')},
+me(){return `<div class="st"><div><b>${fav.size}</b>любимых</div><div><b>${done.size}</b>приготовлено</div><div><b>${custom.length}</b>моих</div></div><button class="primary" data-add="1">Добавить рецепт</button><h2>Мои рецепты</h2>${custom.length?grid(custom):'<p class="sub">Пока нет своих рецептов. Нажмите ＋, чтобы добавить.</p>'}<button class="ghost" data-export="1">Скопировать мои рецепты (JSON)</button>`}};
+function sbody(){const b=$('#sbody');if(!b)return;const k=q.toLowerCase().trim();b.innerHTML=k?grid(all().filter(r=>[r.title,r.category,r.description,...r.ingredients].join(' ').toLowerCase().includes(k))):`${meals()}<h2>Категории</h2><div class="cg2">${CATS.map(ctile).join('')}</div>`}
+function draw(){$('#ttl').textContent=view?view.t:TT[tab];$('#hb').textContent=view?'‹':'☰';document.querySelectorAll('#tabs [data-t]').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
+$('#main').innerHTML=view?grid(view.f()):SCR[tab]();if(tab==='search'&&!view)sbody()}
+const go=(t,f)=>{view={t,f};draw();scrollTo(0,0)};
+function lbls(id){document.querySelectorAll('#detail [data-fav],#detail [data-cart],#detail [data-done]').forEach(b=>{const k=Object.keys(b.dataset)[0];b.textContent={fav:fav.has(id)?'♥ В любимых':'♡ В любимые',cart:cart.includes(id)?'☑ В покупках':'☐ В покупки',done:done.has(id)?'✓ Приготовлено':'○ Приготовлено'}[k];b.classList.toggle('act',{fav:fav.has(id),cart:cart.includes(id),done:done.has(id)}[k])})}
+function openRecipe(id){const r=find(id);if(!r)return;const mine=id[0]==='c';
+$('#dc').innerHTML=`<div class="dh"><button id="dBack" aria-label="Назад">‹</button><span>Рецепт</span></div><div class="dimg">${ph(r)}</div><div class="dp"><h2>${esc(r.title)}</h2><div class="sub">${esc(r.category)} · ${esc(r.meal||'')} · ◷ ${r.time} мин</div><p>${esc(r.description||'')}</p><div class="ba"><button data-fav="${id}"></button><button data-cart="${id}"></button><button data-done="${id}"></button></div><h3>Ингредиенты</h3><ul class="ing">${r.ingredients.map(x=>`<li>${esc(x)}</li>`).join('')}</ul><h3>Приготовление</h3><ol class="steps">${r.steps.map(x=>`<li><span>${esc(x)}</span></li>`).join('')}</ol>${mine?'<button class="ghost" data-edit="1">Изменить</button><button class="danger" data-del="1">Удалить</button>':''}</div>`;
+lbls(id);$('#dBack').onclick=()=>$('#detail').close();$('#detail').dataset.id=id;$('#detail').showModal();$('#detail').scrollTop=0}
+const tog=(s,id)=>s.has(id)?s.delete(id):s.add(id);
 function openForm(r){const f=$('#form');f.reset();editId=r?r.id:null;$('#formTitle').textContent=r?'Изменить рецепт':'Новый рецепт';
-if(r){f.title.value=r.title;f.category.value=r.category;f.time.value=r.time;f.photo.value=(r.photo||'').startsWith('data:')?'':r.photo||'';f.description.value=r.description||'';f.ingredients.value=r.ingredients.join('\n');f.steps.value=r.steps.join('\n')}$('#addDialog').showModal()}
+if(r){f.title.value=r.title;f.category.value=r.category;f.meal.value=r.meal||'Обед';f.time.value=r.time;f.photo.value=(r.photo||'').startsWith('data:')?'':r.photo||'';f.description.value=r.description||'';f.ingredients.value=r.ingredients.join('\n');f.steps.value=r.steps.join('\n')}$('#addDialog').showModal()}
+document.body.onclick=e=>{const g=k=>{const el=e.target.closest(`[data-${k}]`);return el&&el.dataset[k]},id=$('#detail').dataset.id;let x;
+if(x=g('fav')){tog(fav,x);save();draw();lbls(x);return}if(x=g('cart')){cart=cart.includes(x)?cart.filter(i=>i!==x):[...cart,x];save();draw();lbls(x);toast(cart.includes(x)?'Добавлено в покупки':'Убрано из покупок');return}
+if(x=g('done')){tog(done,x);save();draw();lbls(x);return}if(g('edit')){$('#detail').close();openForm(find(id));return}
+if(g('del')){if(confirm('Удалить рецепт?')){custom=custom.filter(r=>r.id!==id);save();$('#detail').close();draw();toast('Рецепт удалён')}return}
+if(x=g('open'))return openRecipe(x);if(x=g('meal'))return go(x,()=>all().filter(r=>r.meal===x));if(x=g('cat'))return go(x,()=>all().filter(r=>r.category===x));
+if(g('list'))return go('Новые рецепты',all);if(x=g('ft')){ftab=x;draw();return}if(x=g('t')){view=null;tab=x;draw();scrollTo(0,0);return}
+if(g('clear')){cart=[];chk.clear();save();draw();return}if(g('add'))return openForm();if(g('close'))return $('#addDialog').close();
+if(g('export')){const t=JSON.stringify(custom.map(r=>({...r,photo:(r.photo||'').startsWith('data:')?'':r.photo})),null,1);navigator.clipboard?.writeText(t).then(()=>toast('Скопировано'),()=>prompt('Скопируйте:',t))}};
+document.body.onchange=e=>{const k=e.target.dataset.chk;if(k){tog(chk,k);save()}};
+document.body.oninput=e=>{if(e.target.id==='q'){q=e.target.value;sbody()}};
+$('#hb').onclick=()=>{if(view)view=null;else tab='me';draw()};
 const readPhoto=file=>new Promise(res=>{const fr=new FileReader();fr.onload=()=>{const im=new Image();im.onload=()=>{const s=Math.min(1,700/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);res(c.toDataURL('image/jpeg',.75))};im.src=fr.result};fr.readAsDataURL(file)});
 $('#form').category.innerHTML=CATS.map(c=>`<option>${c}</option>`).join('');
 $('#form').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target),L=k=>f.get(k).split('\n').map(x=>x.trim()).filter(Boolean),file=f.get('file'),old=custom.find(x=>x.id===editId);
-const photo=file&&file.size?await readPhoto(file):f.get('photo').trim()||(old&&old.photo.startsWith('data:')?old.photo:'');
-const r={id:editId||'c'+Date.now(),title:f.get('title').trim(),category:f.get('category'),time:+f.get('time'),photo,description:f.get('description').trim(),ingredients:L('ingredients'),steps:L('steps')};
-custom=editId?custom.map(x=>x.id===editId?r:x):[r,...custom];sv('cb2-custom',custom);cat='Все';hero();render();$('#addDialog').close();toast('Рецепт сохранён')};
-$('#export').onclick=()=>{const t=JSON.stringify(custom.map(r=>({...r,photo:(r.photo||'').startsWith('data:')?'':r.photo})),null,1);navigator.clipboard?.writeText(t).then(()=>toast('Скопировано'),()=>prompt('Скопируйте:',t))};
-$('#cats').onclick=e=>{const b=e.target.closest('[data-c]');if(b){cat=b.dataset.c;render()}};
-$('#tabs').onclick=e=>{const b=e.target.closest('[data-t]');if(b){cat=b.dataset.t;render()}};
-$('#search').oninput=render;$('#rand').onclick=()=>{const l=all();openRecipe(l[Math.floor(Math.random()*l.length)].id)};
-document.body.onclick=e=>{const f=e.target.closest('[data-fav]'),o=e.target.closest('[data-open]');if(f){e.stopPropagation();toggleFav(f.dataset.fav)}else if(o)openRecipe(o.dataset.open)};
-$('#add').onclick=()=>openForm();document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>$('#'+b.dataset.close).close());
-try{Telegram.WebApp.ready();Telegram.WebApp.expand();Telegram.WebApp.setHeaderColor('#10261e');Telegram.WebApp.setBackgroundColor('#10261e')}catch(e){}
-hero();render();
+const photo=file&&file.size?await readPhoto(file):f.get('photo').trim()||(old&&(old.photo||'').startsWith('data:')?old.photo:'');
+const r={id:editId||'c'+Date.now(),title:f.get('title').trim(),category:f.get('category'),meal:f.get('meal'),time:+f.get('time'),photo,description:f.get('description').trim(),ingredients:L('ingredients'),steps:L('steps')};
+custom=editId?custom.map(x=>x.id===editId?r:x):[r,...custom];save();view=null;draw();$('#addDialog').close();toast('Рецепт сохранён')};
+try{Telegram.WebApp.ready();Telegram.WebApp.expand();Telegram.WebApp.setHeaderColor('#4a4753');Telegram.WebApp.setBackgroundColor('#1d1b20')}catch(e){}
+draw();

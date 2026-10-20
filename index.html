@@ -1,17 +1,14 @@
-<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#10261e"><title>Домашняя кулинарная книга</title><link rel="stylesheet" href="style.css"><script src="https://telegram.org/js/telegram-web-app.js"></script></head><body>
-<div class="app"><header><span class="logo">Домашняя<br>кулинарная книга</span><button id="rand" class="round" aria-label="Случайный рецепт">⟳</button></header>
-<div class="search"><input id="search" type="search" placeholder="Найти блюдо или ингредиент"></div>
-<section id="hero" class="glass hero"></section>
-<nav id="cats" aria-label="Категории"></nav>
-<main><div class="sec"><h2 id="secTitle">Все рецепты</h2><span id="count"></span></div><div id="recipes" class="grid"></div></main></div>
-<footer id="tabs"><button data-t="Все" class="on"><i>⌂</i>Главная</button><button data-t="♥"><i>♡</i>Избранное</button><button data-t="Мои"><i>☰</i>Мои</button><button id="add"><i>＋</i>Добавить</button></footer>
-<dialog id="detail"><div id="detailContent"></div></dialog>
-<dialog id="addDialog"><button class="round close" data-close="addDialog" aria-label="Закрыть">×</button><h2 id="formTitle">Новый рецепт</h2>
+<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#4a4753"><title>Простые рецепты</title><link rel="stylesheet" href="style.css"><script src="https://telegram.org/js/telegram-web-app.js"></script></head><body>
+<header><button id="hb" aria-label="Меню">☰</button><h1 id="ttl">Главная</h1></header><main id="main"></main>
+<button id="fab" data-add="1" aria-label="Добавить рецепт">＋</button>
+<nav id="tabs"><button data-t="home"><i>⌂</i>Главная</button><button data-t="fav"><i>♡</i>Любимые</button><button data-t="search"><i>⌕</i>Поиск</button><button data-t="cart"><i>▤</i>Покупки</button><button data-t="me"><i>☺</i>Профиль</button></nav>
+<dialog id="detail"><div id="dc"></div></dialog>
+<dialog id="addDialog"><div class="dh"><button data-close="1" aria-label="Закрыть">‹</button><span id="formTitle">Новый рецепт</span></div>
 <form id="form"><label>Название<input name="title" required></label>
-<div class="row"><label>Категория<select name="category"></select></label><label>Время, мин<input name="time" type="number" min="1" value="30" required></label></div>
+<div class="row"><label>Категория<select name="category"></select></label><label>Приём пищи<select name="meal"><option>Завтрак</option><option>Перекус</option><option>Обед</option><option>Ужин</option></select></label></div>
+<label>Время, мин<input name="time" type="number" min="1" value="30" required></label>
 <label>Фото с телефона<input name="file" type="file" accept="image/*"></label><label>или ссылка на фото<input name="photo" type="url" placeholder="необязательно"></label>
 <label>Коротко о блюде<input name="description"></label>
 <label>Ингредиенты, каждый с новой строки<textarea name="ingredients" required placeholder="Творог — 400 г"></textarea></label>
-<label>Шаги, каждый с новой строки<textarea name="steps" required></textarea></label>
-<button class="primary">Сохранить рецепт</button><button type="button" id="export" class="ghost">Скопировать мои рецепты (JSON)</button></form></dialog>
+<label>Шаги, каждый с новой строки<textarea name="steps" required></textarea></label><button class="primary">Сохранить рецепт</button></form></dialog>
 <div id="toast" role="status"></div><script src="recipes.js"></script><script src="app.js"></script></body></html>
